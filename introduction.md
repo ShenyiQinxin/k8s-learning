@@ -738,7 +738,7 @@ Generally, Kubernetes creates two default Namespaces: kube-system and default. T
 
 Using Resource Quotas, we can divide the cluster resources within Namespaces. We will briefly cover resource quotas in one of the future chapters.
 
-#Chapter 8. Authentication, Authorization, Admission Control
+# Chapter 8. Authentication, Authorization, Admission Control
 
 ## Authentication, Authorization, and Admission Control - Overview
 
@@ -751,7 +751,7 @@ Authorizes the API requests added by the logged-in user.
 - Admission Control
 Software modules that can modify or reject the requests based on some additional checks, like Quota.
 
-##Authentication I
+## Authentication I
 
 Kubernetes does not have an object called user, nor does it store usernames or other related details in its object store. However, even without that, Kubernetes can use usernames for access control and request logging, which we will explore in this chapter.
 
