@@ -1,10 +1,10 @@
 ### Setup
-```console
+```py
 source <(kubectl completion bash) ; echo "source <(kubectl completion bash)" >> ~/.bashrc
 echo "alias k=kubectl; complete -F __start_kubectl k" >> ~/.bashrc
 ```
 ### Node
-```console
+```py
 kubectl describe nodes | grep -i Taint
 kubectl taint nodes --all node-role.kubernetes.io/master-
 ```
@@ -23,7 +23,7 @@ spec:
   - name: fdlogger
     image: fluent/fluentd
 ```
-```console
+```py
 kubectl get pod -n kube-system
 kubectl get pod --all-namespaces
 ```
@@ -41,8 +41,16 @@ spec:
   - protocol: TCP
     port: 80
 ```
+```py
+//it requires labels in pod 
+kubectl expose pod secondapp --type=NodePort --port=80
+kubectl create service nodeport secondapp --tcp=80
+
+//in service , make sure the selector refers to the label for the pod
+kubectl edit svc secondapp
+```
 ### Deployment
-```console
+```py
 kubectl create deployment firstpod --image=nginx
 kubectl create deployment try1 --image=10.110.186.162:5000/simpleapp:latest
 kubectl scale deployment try1 --replicas=6
@@ -51,7 +59,7 @@ sudo docker ps | grep simple
 
 ```
 ### readinessProbe and livenessProbe
-```console
+```py
 kubectl exec -it try1-9869bdb88-rtchc -- /bin/bash
 
 for name in try1-9869bdb88-2wfnr try1-9869bdb88-6bkn
@@ -139,7 +147,7 @@ spec:
           restartPolicy: Never
 ```
 ### ConfigMap
-```console
+```py
 kubectl create configmap colors \
 --from-literal=text=black \
 --from-file=./favorite \
@@ -257,4 +265,214 @@ volumes:
 dnsPolicy: ClusterFirst
 
 
+```
+#### PV and PVC in Ambassador containers
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: basicpod
+  labels:
+    type: webserver
+spec:
+  volumes:
+    - name: weblog-pv-storage
+      persistentVolumeClaim:
+        claimName: weblog-pv-claim
+    - name: log-config
+      configMap:
+        claimName: fluentd-config
+  containers:
+  - name: webcont
+    image: nginx
+    ports:
+    - containersPort: 80
+    volumeMounts:
+      - mountPath: "/var/log/nginx/" #<-- different mount path
+        name: weblog-pv-storage      #<-- same mount name cus of same volume
+  - name: fdlogger
+    image: fluent/fluentd
+    env:
+    - name: FLUENTD_ARGS
+      value: -c /etc/fluentd-config/fluentd.conf
+    volumeMounts:
+      - mountPath: "/var/log"    #<-- different mount path
+        name: weblog-pv-storage  #<-- same mount name
+      - mountPath: "/etc/fluentd-config"    
+        name: log-config                  
+```
+```py
+tailf /var/log/nginx/access.log
+```
+```py
+kubectl rollout history deployment try1 --revision=1 > one.out
+kubectl rollout history deployment try1 --revision=2 > two.out
+diff one.out two.out
+kubectl rollout undo --dry-run=true deployment/try1
+```
+### Security
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secondapp
+spec:
+  securityContext:
+    runAsUser: 1000
+  containers:
+  - name: busy
+    image: busybox
+    command:
+      - sleep
+      - "3600"
+    securityContext:
+      runAsUser: 2000
+      allowPrivilegeEscalation: false
+      capabilities:
+        add: ["NET_ADMIN", "SYS_TIME"]
+    volumeMounts:
+    - name: mysql
+      mountPath: /mysqlpassword
+  volumes:
+  - name: mysql
+    secret:
+      secretName: lfsecret
+```
+```py
+kubectl exec -it secondapp -- sh
+/$ ps aux
+/$ grep Cap /proc/1/status
+
+/$ cat /mysqlpassword/password
+/$ exit
+
+capsh --decode=00000000a80425fb
+echo LFTr@1n | base64
+```
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: lfsecret
+data:
+  password: TEZUckAxbgo=
+```
+### ServiceAccount
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+ name: secret-access-sa
+```
+
+### ClusterRole
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+ name: secret-access-cr
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+```
+
+### RoleBinding
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+ name: secret-rb
+subjects:
+- kind: ServiceAccount
+  name: secret-access-sa
+roleRef:
+ kind: ClusterRole
+ name: secret-access-cr
+ apiGroup: rbac.authorization.k8s.io
+```
+
+#### ServiceAccount and ClusterRole through Rolebinding, pass secrets to pod secondapp
+```yaml
+...
+  name: secondapp
+spec:
+  serviceAccountName: secret-access-sa
+...
+```
+```yaml
+kubectl describe pod secondapp |grep -i secret
+```
+
+### NetworkPolicy
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-default
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - ipBlock: #<-- white list the ip block
+        cidr: 192.168.0.0/16
+    ports:
+    - port: 80
+      protocol: TCP #<-- allow TCP and 80 only
+  - Egress
+```
+#### test ingress and egress
+```py
+kubectl replace -f allclosed.yaml
+
+//ip a shows the ip of the container
+kubectl exec -it secondapp -- sh
+/$ nc -vz 127.0.0.1 80
+127.0.0.1 (127.0.0.1:80) open
+/$ nc -vz www.linux.com 80
+www.linux.com (151.101.185.5:80) open
+/$ ip a
+/$ exit
+
+ping -c5 192.168.55.91
+```
+
+### Ingress Controller
+It requires **ClusterRole**, **ServiceAccount**, **ClusterRoleBinding**, **Daemonset**, **service**
+```yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ingress-test
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: www.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: secondapp
+          servicePort: 80
+        path: /
+  - host: thirdpage.org
+    http:
+      paths:
+      - backend:
+          serviceName: thirdpage
+          servicePort: 80
+        path: /
+```
+```console
+kubectl run thirdpage --generator=run-pod/v1 --image=nginx --port=80 -l example=third
+
+kubectl edit ingress ingress-test
+
+curl -H "Host: thirdpage.org" http://10.128.0.7/
 ```
