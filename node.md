@@ -209,7 +209,7 @@ spec:
     path: /opt/sfw
     server: master
     readOnly: false
-
+-----------------------------
 kind: PersistentVolume
 apiVersion: v1
 metadata:
