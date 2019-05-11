@@ -77,28 +77,89 @@ spec:
   resources: {}
 ```
 ### cni
-Which of the plugins allow vxlans?
+#### Which of the plugins allow vxlans?
 Canal, Flannel, Kopeio-networking, Weave Net
-2. Which are layer 2 plugins?
+#### Which are layer 2 plugins?
 Canal, Flannel, Kopeio-networking, Weave Net
-3. Which are layer 3?
+#### Which are layer 3?
 Project Calico, Romana, Kube Router
-4. Which allow network policies?
+#### Which allow network policies?
 Project Calico, Canal, Kube Router, Romana Weave Net
-5. Which can encrypt all TCP and UDP traffic?
+#### Which can encrypt all TCP and UDP traffic?
 Project Calico, Kopeio, Weave Net
-1. Which deployment method would allow the most flexibility, multiple applications per pod or one per Pod?
+#### Which deployment method would allow the most flexibility, multiple applications per pod or one per Pod?
 One per pod
-2. Which deployment method allows for the most granular scalability?
+#### Which deployment method allows for the most granular scalability?
 One per pod
-3. Which have the best inter-container performance? Multiple per pod.
-4. How many IP addresses are assigned per pod?
+#### Which have the best inter-container performance? Multiple per pod.
+#### How many IP addresses are assigned per pod?
 One
-5. What are some ways containers can communicate within the same pod?
+#### What are some ways containers can communicate within the same pod?
 IPC, loopback or shared filesystem access.
-6. What are some reasons you should have multiple containers per pod?
+#### What are some reasons you should have multiple containers per pod?
 Lean containers may not have functionality like logging. Able to maintain lean execution but add functionality as necessary, like Ambassadors and Sidecar containers.
 
 ### Job
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sleepy
+spec:
+  completions: 5
+  parallelism: 2
+  activeDeadlineSeconds: 15
+  template
+    spec:
+      containers:
+      - name: resting
+        image: busybox
+        command: ["/bin/sleep"]
+        args: ["3"]
+      restartPolicy: Never
+```
+### CronJob
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: sleepy
+spec:
+  schedule: "*/2 * * * *"
+  jobTemplate
+    spec:
+      template:
+        spec:
+          activeDeadlineSeconds: 10
+          containers:
+          - name: resting
+            image: busybox
+            command: ["/bin/sleep"]
+            args: ["3"]
+          restartPolicy: Never
+```
+### ConfigMap
+```console
+kubectl create configmap colors \
+--from-literal=text=black \
+--from-file=./favorite \
+--from-file=./primary/
 
+kubectl exec -it try1-d4fbf76fd-46pkb -- /bin/bash -c env
 
+```
+```yaml
+spec:
+  containers:
+  - image: 10.105.119.236:5000/simpleapp:latest
+    env : # Add from here
+    - name: ilike
+      valueFrom:
+        configMapKeyRef:
+          name: colors
+          key: favorite # To here
+    envFrom : #<-- Add this and the following two lines
+    - configMapRef:
+        name: colors
+     imagePullPolicy: Always
+```
