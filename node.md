@@ -158,8 +158,103 @@ spec:
         configMapKeyRef:
           name: colors
           key: favorite # To here
+```
+```yaml
     envFrom : #<-- Add this and the following two lines
     - configMapRef:
         name: colors
      imagePullPolicy: Always
+```
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fast-car
+  namespace: default
+data:
+  car.make: Ford
+  car.model: Mustang
+  car.trim: Shelby
+```
+```yaml
+spec:
+  containers:
+  - image: 0.105.119.236:5000/simpleapp:latest
+    volumeMounts:
+    - mountPath: /etc/cars
+      name: car-vol
+    env:
+    - name: ilike
+```
+```yaml
+volumes:
+- name: car-vol
+  configMap:
+    defaultMode: 420
+    name: fast-car
+```
+### PersistentVolume and PersistentVolumeClaim
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pvvol-1
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: /opt/sfw
+    server: master
+    readOnly: false
+
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: weblog-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/weblog"
+```
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-one
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Mi
+```
+```yaml
+... in deploy
+volumMounts:
+- name: car-vol 
+  mountPath: /etc/cars #<-- just like a path for mount storing resources from nfs
+- name: nfs-vol
+  mountPath: /opt
+
+... at containers level
+volumes:
+- name: car-vol
+  configMap:
+    defaultMode: 420
+    name: fast-car
+- name: nfs-vol
+  persistentVolumeClaim:
+    claimName: pvc-one
+dnsPolicy: ClusterFirst
+
+
 ```
