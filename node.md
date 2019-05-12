@@ -469,10 +469,11 @@ spec:
           servicePort: 80
         path: /
 ```
-```console
+```py
 kubectl run thirdpage --generator=run-pod/v1 --image=nginx --port=80 -l example=third
 
 kubectl edit ingress ingress-test
 
 curl -H "Host: thirdpage.org" http://10.128.0.7/
 ```
+
