@@ -13,7 +13,9 @@ kubectl describe pod try1-76cc5ffcc6-tx4dz | grep -E 'State|Ready'
 grep Cap /proc/1/status
 ```
 *State: Running*
+
 *Ready: True*
+
 *CapInh: 00000000a80425fb*
 
 #### About kubectl exec
@@ -51,6 +53,8 @@ kubectl replace -f allclosed.yaml
 kubectl edit ingress ingress-test
 
 ```
+> Service created by command requires image, service type, protocol/port, name, label
+> Deployment created by command requires image, replicas
 
 ### Node
 ```console
@@ -125,7 +129,7 @@ spec:
   - image: 10.111.235.60:5000/simpleapp:latest
     imagePullPolicy: Always
     name: simpleapp
-    readinessProbe:         #<--This line and next five
+    readinessProbe:        
       exec:
       command:
       - cat
@@ -133,22 +137,23 @@ spec:
     periodSeconds: 5
   resources: {}
 ```
-### cni
-#### Which of the plugins allow vxlans?
+### CNI
+#### Which of the plugins allow vxlans (network visualization tech on cloud development)?
 Canal, Flannel, Kopeio-networking, Weave Net
-#### Which are layer 2 plugins?
+#### Which are layer 2 plugins (Data link/Link layer, Ethernet protocol, MAC addresses)?
 Canal, Flannel, Kopeio-networking, Weave Net
-#### Which are layer 3?
+#### Which are layer 3 (Network/Internet layer, IPs)?
 Project Calico, Romana, Kube Router
 #### Which allow network policies?
 Project Calico, Canal, Kube Router, Romana Weave Net
-#### Which can encrypt all TCP and UDP traffic?
+#### Which can encrypt all TCP and UDP traffic(Transport/Internet layer)?
 Project Calico, Kopeio, Weave Net
 #### Which deployment method would allow the most flexibility, multiple applications per pod or one per Pod?
 One per pod
 #### Which deployment method allows for the most granular scalability?
 One per pod
-#### Which have the best inter-container performance? Multiple per pod.
+#### Which have the best inter-container performance? 
+Multiple per pod.
 #### How many IP addresses are assigned per pod?
 One
 #### What are some ways containers can communicate within the same pod?
