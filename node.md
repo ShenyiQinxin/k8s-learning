@@ -574,4 +574,4 @@ curl -H "Host: thirdpage.org" http://10.128.0.7/
 ```
 
 ![pic1](https://user-images.githubusercontent.com/32177380/57588403-98b56880-74e1-11e9-8a68-977c0425a450.JPG)
-![pic2](https://user-images.githubusercontent.com/32177380/57588405-9a7f2c00-74e1-11e9-9fbb-d9b944b8b51d.JPG)
+![pic2](https://user-images.githubusercontent.com/32177380/57588447-3c9f1400-74e2-11e9-8e6f-00a3f710513d.JPG)
