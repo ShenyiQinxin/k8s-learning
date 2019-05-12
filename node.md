@@ -253,7 +253,7 @@ spec:
       valueFrom:
         configMapKeyRef:
           name: colors
-          key: favorite # 
+          key: favorite 
 ```
 ```yaml
     envFrom : #<-- assign a configMap by name
@@ -265,16 +265,20 @@ spec:
   containers:
   - image: 0.105.119.236:5000/simpleapp:latest
     volumeMounts:
-    - mountPath: /etc/cars
+    - mountPath: /etc/cars #<-- mount the configMap at the path
       name: car-vol #<-- volume name
 ---------------------
 volumes:
 - name: car-vol
   configMap:
     defaultMode: 420
-    name: fast-car #<-- configMap in a volume
+    name: fast-car #<-- create a volume from configMap
 ```
-### PersistentVolume and PersistentVolumeClaim
+### PersistentVolume
+> PV contains capacity, accessModes, persistentVolumeReclaimPolicy, nfs/hostPath(local)
+> NFS - path: /opt/sfw, server: master, readOnly: false
+> hostPath - path: /tmp/weblog
+
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -306,6 +310,11 @@ spec:
   hostPath: #<-- local path of the volume
     path: "/tmp/weblog"
 ```
+
+### PersistentVolumeClaim
+
+> PVC contains accessModes, resources.requests.storage
+
 ```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -332,6 +341,8 @@ spec:
       storage: 100Mi
 ```
 
+> volumMounts contains the name of volume, mountPath
+
 ```yaml
 ... in deploy
 volumMounts:
@@ -348,7 +359,7 @@ volumes:
     name: fast-car #<-- configMap name
 - name: nfs-vol
   persistentVolumeClaim:
-    claimName: pvc-one #<-- PVClaim points to the PV
+    claimName: pvc-one #<-- PVClaim name -->  PV
 ```
 #### PV and PVC in Ambassador containers
 ```yaml
