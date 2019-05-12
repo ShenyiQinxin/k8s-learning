@@ -3,6 +3,55 @@
 source <(kubectl completion bash) ; echo "source <(kubectl completion bash)" >> ~/.bashrc
 echo "alias k=kubectl; complete -F __start_kubectl k" >> ~/.bashrc
 ```
+
+#### About grep
+```console
+kubectl describe nodes | grep -i Taint
+kubectl describe pod secondapp |grep -i secret
+sudo docker ps | grep simple
+kubectl describe pod try1-76cc5ffcc6-tx4dz | grep -E 'State|Ready'
+grep Cap /proc/1/status
+```
+*State: Running*
+*Ready: True*
+*CapInh: 00000000a80425fb*
+
+#### About kubectl exec
+```console
+kubectl exec -it try1-9869bdb88-rtchc -- /bin/bash
+
+kubectl exec -it try1-d4fbf76fd-46pkb -- /bin/bash -c env
+
+kubectl exec -it secondapp -- sh
+
+for name in try1-9869bdb88-2wfnr try1-9869bdb88-6bkn
+do
+kubectl exec $name touch /tmp/healthy
+done
+```
+
+#### Command lines without yaml
+```console
+kubectl expose pod secondapp --type=NodePort --port=80
+kubectl create service nodeport secondapp --tcp=80
+kubectl run thirdpage --generator=run-pod/v1 --image=nginx --port=80 -l example=third
+
+kubectl create deployment firstpod --image=nginx
+kubectl create deployment try1 --image=10.110.186.162:5000/simpleapp:latest
+kubectl scale deployment try1 --replicas=6
+
+
+kubectl create configmap colors \
+--from-literal=text=black \
+--from-file=./favorite \
+--from-file=./primary/
+
+kubectl replace -f allclosed.yaml
+
+kubectl edit ingress ingress-test
+
+```
+
 ### Node
 ```console
 kubectl describe nodes | grep -i Taint
@@ -157,23 +206,6 @@ kubectl exec -it try1-d4fbf76fd-46pkb -- /bin/bash -c env
 
 ```
 ```yaml
-spec:
-  containers:
-  - image: 10.105.119.236:5000/simpleapp:latest
-    env : # Add from here
-    - name: ilike
-      valueFrom:
-        configMapKeyRef:
-          name: colors
-          key: favorite # To here
-```
-```yaml
-    envFrom : #<-- Add this and the following two lines
-    - configMapRef:
-        name: colors
-     imagePullPolicy: Always
-```
-```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -185,21 +217,57 @@ data:
   car.trim: Shelby
 ```
 ```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+data:
+  fluentd.conf: |
+    <source>
+      @type tail
+      format none
+      path /var/log/nginx/access.log
+      tag count.format1
+    </source>
+
+    <match *.**>
+      @type forward
+
+      <server>
+        name localhost
+        host 127.0.0.1
+      </server>
+    </match>
+```
+```yaml
+spec:
+  containers:
+  - image: 10.105.119.236:5000/simpleapp:latest
+    env : # <-- assign a value from ConfigMap by key
+    - name: ilike
+      valueFrom:
+        configMapKeyRef:
+          name: colors
+          key: favorite # 
+```
+```yaml
+    envFrom : #<-- assign a configMap by name
+    - configMapRef:
+        name: colors
+```
+```yaml
 spec:
   containers:
   - image: 0.105.119.236:5000/simpleapp:latest
     volumeMounts:
     - mountPath: /etc/cars
-      name: car-vol
-    env:
-    - name: ilike
-```
-```yaml
+      name: car-vol #<-- volume name
+---------------------
 volumes:
 - name: car-vol
   configMap:
     defaultMode: 420
-    name: fast-car
+    name: fast-car #<-- configMap in a volume
 ```
 ### PersistentVolume and PersistentVolumeClaim
 ```yaml
@@ -213,7 +281,7 @@ spec:
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
-  nfs:
+  nfs:   #<-- nfs as a volume with the host path
     path: /opt/sfw
     server: master
     readOnly: false
@@ -230,7 +298,7 @@ spec:
     storage: 100Mi
   accessModes:
     - ReadWriteOnce
-  hostPath:
+  hostPath: #<-- local path of the volume
     path: "/tmp/weblog"
 ```
 ```yaml
@@ -244,27 +312,38 @@ spec:
   resources:
     requests:
       storage: 200Mi
+
+---------------------------
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: weblog-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
 ```
+
 ```yaml
 ... in deploy
 volumMounts:
-- name: car-vol 
-  mountPath: /etc/cars #<-- just like a path for mount storing resources from nfs
-- name: nfs-vol
-  mountPath: /opt
+- name: car-vol #<-- volume name
+  mountPath: /etc/cars #<-- a path for mount getting resources from nfs host path
+- name: nfs-vol #<-- volume name
+  mountPath: /opt #<-- a local path for the mount getting resource from PV path
 
 ... at containers level
 volumes:
 - name: car-vol
   configMap:
     defaultMode: 420
-    name: fast-car
+    name: fast-car #<-- configMap name
 - name: nfs-vol
   persistentVolumeClaim:
-    claimName: pvc-one
-dnsPolicy: ClusterFirst
-
-
+    claimName: pvc-one #<-- PVClaim points to the PV
 ```
 #### PV and PVC in Ambassador containers
 ```yaml
@@ -281,7 +360,7 @@ spec:
         claimName: weblog-pv-claim
     - name: log-config
       configMap:
-        claimName: fluentd-config
+        name: fluentd-config
   containers:
   - name: webcont
     image: nginx
@@ -293,12 +372,12 @@ spec:
   - name: fdlogger
     image: fluent/fluentd
     env:
-    - name: FLUENTD_ARGS
-      value: -c /etc/fluentd-config/fluentd.conf
+    - name: FLUENTD_ARGS #<-- just a name for configmap
+      value: -c /etc/fluentd-config/fluentd.conf #<-- the value to be logged
     volumeMounts:
       - mountPath: "/var/log"    #<-- different mount path
         name: weblog-pv-storage  #<-- same mount name
-      - mountPath: "/etc/fluentd-config"    
+      - mountPath: "/etc/fluentd-config" #<-- assign a path for the mount
         name: log-config                  
 ```
 ```console
@@ -309,6 +388,7 @@ kubectl rollout history deployment try1 --revision=1 > one.out
 kubectl rollout history deployment try1 --revision=2 > two.out
 diff one.out two.out
 kubectl rollout undo --dry-run=true deployment/try1
+kubectl rollout undo deployment try1 --to-revision=1
 ```
 ### Security
 ```yaml
@@ -330,10 +410,10 @@ spec:
       allowPrivilegeEscalation: false
       capabilities:
         add: ["NET_ADMIN", "SYS_TIME"]
-    volumeMounts:
+    volumeMounts: #<-- mount PV of secret
     - name: mysql
       mountPath: /mysqlpassword
-  volumes:
+  volumes: #<-- PV of secret
   - name: mysql
     secret:
       secretName: lfsecret
@@ -401,7 +481,7 @@ roleRef:
 ...
   name: secondapp
 spec:
-  serviceAccountName: secret-access-sa
+  serviceAccountName: secret-access-sa #<-- pass SA to the pod, so that the secret is assigned to the pod
 ...
 ```
 ```yaml
@@ -458,14 +538,14 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: secondapp
+          serviceName: secondapp #<-- svc name
           servicePort: 80
         path: /
   - host: thirdpage.org
     http:
       paths:
       - backend:
-          serviceName: thirdpage
+          serviceName: thirdpage #<-- svc name
           servicePort: 80
         path: /
 ```
