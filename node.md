@@ -1,10 +1,10 @@
 ### Setup
-```py
+```console
 source <(kubectl completion bash) ; echo "source <(kubectl completion bash)" >> ~/.bashrc
 echo "alias k=kubectl; complete -F __start_kubectl k" >> ~/.bashrc
 ```
 ### Node
-```py
+```console
 kubectl describe nodes | grep -i Taint
 kubectl taint nodes --all node-role.kubernetes.io/master-
 ```
@@ -23,7 +23,7 @@ spec:
   - name: fdlogger
     image: fluent/fluentd
 ```
-```py
+```console
 kubectl get pod -n kube-system
 kubectl get pod --all-namespaces
 ```
@@ -41,7 +41,7 @@ spec:
   - protocol: TCP
     port: 80
 ```
-```py
+```console
 //it requires labels in pod 
 kubectl expose pod secondapp --type=NodePort --port=80
 kubectl create service nodeport secondapp --tcp=80
@@ -50,7 +50,7 @@ kubectl create service nodeport secondapp --tcp=80
 kubectl edit svc secondapp
 ```
 ### Deployment
-```py
+```console
 kubectl create deployment firstpod --image=nginx
 kubectl create deployment try1 --image=10.110.186.162:5000/simpleapp:latest
 kubectl scale deployment try1 --replicas=6
@@ -59,7 +59,7 @@ sudo docker ps | grep simple
 
 ```
 ### readinessProbe and livenessProbe
-```py
+```console
 kubectl exec -it try1-9869bdb88-rtchc -- /bin/bash
 
 for name in try1-9869bdb88-2wfnr try1-9869bdb88-6bkn
@@ -112,7 +112,7 @@ Lean containers may not have functionality like logging. Able to maintain lean e
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: sleepy
+  name: sleeconsole
 spec:
   completions: 5
   parallelism: 2
@@ -131,7 +131,7 @@ spec:
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: sleepy
+  name: sleeconsole
 spec:
   schedule: "*/2 * * * *"
   jobTemplate
@@ -147,7 +147,7 @@ spec:
           restartPolicy: Never
 ```
 ### ConfigMap
-```py
+```console
 kubectl create configmap colors \
 --from-literal=text=black \
 --from-file=./favorite \
@@ -301,10 +301,10 @@ spec:
       - mountPath: "/etc/fluentd-config"    
         name: log-config                  
 ```
-```py
+```console
 tailf /var/log/nginx/access.log
 ```
-```py
+```console
 kubectl rollout history deployment try1 --revision=1 > one.out
 kubectl rollout history deployment try1 --revision=2 > two.out
 diff one.out two.out
@@ -338,7 +338,7 @@ spec:
     secret:
       secretName: lfsecret
 ```
-```py
+```console
 kubectl exec -it secondapp -- sh
 /$ ps aux
 /$ grep Cap /proc/1/status
@@ -428,7 +428,7 @@ spec:
   - Egress
 ```
 #### test ingress and egress
-```py
+```console
 kubectl replace -f allclosed.yaml
 
 //ip a shows the ip of the container
@@ -469,7 +469,7 @@ spec:
           servicePort: 80
         path: /
 ```
-```py
+```console
 kubectl run thirdpage --generator=run-pod/v1 --image=nginx --port=80 -l example=third
 
 kubectl edit ingress ingress-test
