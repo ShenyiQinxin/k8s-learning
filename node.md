@@ -95,7 +95,7 @@ spec:
     port: 80
 ```
 ```console
-//it requires labels in pod 
+//it requires labels in pod
 kubectl expose pod secondapp --type=NodePort --port=80
 kubectl create service nodeport secondapp --tcp=80
 
@@ -129,7 +129,7 @@ spec:
   - image: 10.111.235.60:5000/simpleapp:latest
     imagePullPolicy: Always
     name: simpleapp
-    readinessProbe:        
+    readinessProbe:
       exec:
       command:
       - cat
@@ -152,7 +152,7 @@ Project Calico, Kopeio, Weave Net
 One per pod
 #### Which deployment method allows for the most granular scalability?
 One per pod
-#### Which have the best inter-container performance? 
+#### Which have the best inter-container performance?
 Multiple per pod.
 #### How many IP addresses are assigned per pod?
 One
@@ -210,6 +210,7 @@ kubectl create configmap colors \
 kubectl exec -it try1-d4fbf76fd-46pkb -- /bin/bash -c env
 
 ```
+#### Define ConfigMap
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -244,6 +245,7 @@ data:
       </server>
     </match>
 ```
+#### Use ConfigMap
 ```yaml
 spec:
   containers:
@@ -253,7 +255,7 @@ spec:
       valueFrom:
         configMapKeyRef:
           name: colors
-          key: favorite 
+          key: favorite
 ```
 ```yaml
     envFrom : #<-- assign a configMap by name
@@ -279,6 +281,7 @@ volumes:
 > NFS - path: /opt/sfw, server: master, readOnly: false
 > hostPath - path: /tmp/weblog
 
+#### Define PV
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
@@ -315,6 +318,7 @@ spec:
 
 > PVC contains accessModes, resources.requests.storage
 
+#### Define PVC
 ```yaml
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -342,7 +346,7 @@ spec:
 ```
 
 > volumMounts contains the name of volume, mountPath
-
+#### Use PV
 ```yaml
 ... in deploy
 volumMounts:
@@ -361,7 +365,7 @@ volumes:
   persistentVolumeClaim:
     claimName: pvc-one #<-- PVClaim name -->  PV
 ```
-#### PV and PVC in Ambassador containers
+#### PV and PVC used in Ambassador containers
 ```yaml
 apiVersion: v1
 kind: Pod
@@ -387,14 +391,14 @@ spec:
         name: weblog-pv-storage      #<-- same mount name cus of same volume
   - name: fdlogger
     image: fluent/fluentd
-    env:
+    env:   #<-- volumeMount sets the path, the value comes from the path
     - name: FLUENTD_ARGS #<-- just a name for configmap
       value: -c /etc/fluentd-config/fluentd.conf #<-- the value to be logged
     volumeMounts:
       - mountPath: "/var/log"    #<-- different mount path
         name: weblog-pv-storage  #<-- same mount name
       - mountPath: "/etc/fluentd-config" #<-- assign a path for the mount
-        name: log-config                  
+        name: log-config
 ```
 ```console
 tailf /var/log/nginx/access.log
