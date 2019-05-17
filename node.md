@@ -19,12 +19,13 @@ grep Cap /proc/1/status
 *CapInh: 00000000a80425fb*
 
 #### About kubectl exec
+imperative
 ```console
-kubectl exec -it try1-9869bdb88-rtchc -- /bin/bash
+<!-- kubectl exec -it try1-9869bdb88-rtchc -- /bin/bash
 
 kubectl exec -it try1-d4fbf76fd-46pkb -- /bin/bash -c env
 
-kubectl exec -it secondapp -- sh
+kubectl exec -it secondapp -- sh -->
 
 for name in try1-9869bdb88-2wfnr try1-9869bdb88-6bkn
 do
@@ -60,6 +61,11 @@ kubectl edit ingress ingress-test
 ```console
 kubectl describe nodes | grep -i Taint
 kubectl taint nodes --all node-role.kubernetes.io/master-
+```
+
+### Node join a cluster
+```
+kubeadm token create --print-join-command
 ```
 ### Pod
 ```yaml
@@ -103,6 +109,14 @@ kubectl create service nodeport secondapp --tcp=80
 kubectl edit svc secondapp
 ```
 ### Deployment
+> Deployments ensure the resources are available (IP, storage), then it deploys a replicaSet
+> ReplicaSets deploy and restarts containers.
+> Jobs and CronJobs handel single or recurring tasks
+
+> labels are string for managing pods
+> taints discourage pod assignments, unless the pod has a toleration in its metadata
+> annotations
+
 ```console
 kubectl create deployment firstpod --image=nginx
 kubectl create deployment try1 --image=10.110.186.162:5000/simpleapp:latest
@@ -579,3 +593,28 @@ curl -H "Host: thirdpage.org" http://10.128.0.7/
 
 ![pic1](https://user-images.githubusercontent.com/32177380/57588403-98b56880-74e1-11e9-8a68-977c0425a450.JPG)
 ![pic2](https://user-images.githubusercontent.com/32177380/57588447-3c9f1400-74e2-11e9-8e6f-00a3f710513d.JPG)
+
+### toole
+```console
+apt-get install tmux
+tmux
+ctl + b
+shift +5
+shift + '
+<   >
+exit
+```
+###
+imperative
+```console
+k create <deployment/pod/service> <name>
+k run <name> # create deploy
+k expose <name>
+k scale <name>
+k edit <name>
+```
+declarative
+```console
+k create/delete/replace -f <filename.yaml>
+k apply -f <filename.yaml>
+```
