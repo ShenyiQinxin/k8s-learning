@@ -618,3 +618,7 @@ declarative
 k create/delete/replace -f <filename.yaml>
 k apply -f <filename.yaml>
 ```
+##
+```console
+kubeadm token create --print-join-command
+```
