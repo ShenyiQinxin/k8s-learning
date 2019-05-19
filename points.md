@@ -209,7 +209,57 @@ spec:
       periodSeconds: 20
 ```
 ## Design
+> verify the cni Calico is configured for the cluster
+```console
+ps -ef | grep cni
+sudo find / -name install-cni.sh
 
+```
+### Designing Applications With Duration: Create a Job and a CronJob
+> Jobs run the application for a particular number of times
+> restartPolicy: Never --> sleeps for 3 seconds, then stop
+> Parallelism: 2 --> run 2 at a time
+> Completions: 5 --> run 5 times in total
+> activeDeadlineSeconds: 15 --> after the 15 second, the job stops
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi
+spec:
+  completions: 5
+  parallelism: 2
+  activeDeadlineSeconds: 15
+  template:
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command: ["/bin/sleep", "3"]
+      restartPolicy: Never
+  backoffLimit: 4
+```
+> CronJobs create a watch loop that create jobs when time is up
+> schedule: "*/1 * * * *" --> every 2 minutes
+> activeDeadlineSeconds: 10 --> the job continues within 10 seconds
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: hello
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          activeDeadlineSeconds: 10
+          containers:
+          - name: busybox
+            image: busybox
+            command: ["/bin/sleep", "3"]
+          restartPolicy: Never
+```
 ## Deployment
 
 ## Security
