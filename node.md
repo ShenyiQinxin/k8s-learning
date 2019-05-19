@@ -1,7 +1,14 @@
 ### Setup
+**cheat sheet**
 ```console
 source <(kubectl completion bash) ; echo "source <(kubectl completion bash)" >> ~/.bashrc
 echo "alias k=kubectl; complete -F __start_kubectl k" >> ~/.bashrc
+```
+### Kubeadm join
+```console
+kubeadm token create --print-join-command
+--- below command is returned
+kubeadm join 10.0.0.181:6443 --token 06d8ul.i2bncyx2ffk04imi --discovery-token-ca-cert-hash sha256:baa500ae2cd46e952ea2d481d18a5d67d173f0890f771520f0ccee4b31ca77f7
 ```
 
 #### About grep
