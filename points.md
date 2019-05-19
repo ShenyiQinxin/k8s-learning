@@ -1,11 +1,11 @@
 ## k8s Architecture
 > linux commands
-```
+```console
 find ~ -name toBeFound.yaml
 cp ~/folder1/toBeFound.yaml found1.yaml
 ```
 > confige commands
-```
+```console
 source <(kubectl completion bash) ; \
 echo "source <(kubectl completion bash)" >> ~/.bashrc
 
@@ -13,18 +13,18 @@ alias k=kubectl; complete -F __start_kubectl k ; \
 echo "alias k=kubectl; complete -F __start_kubectl k" >> ~/.bashrc
 ```
 > verify...
-```
+```console
 k get deploy,po,svc,ep,pv,pvc
 ```
 
 ### Deploy a cluster
 > Deploy a master node using kubeadm init
-```
+```console
 sudo apt-get install -y kubeadm=1.14.1-00
 sudo kubeadm init --kubernetes-version 1.14.1 --pod-network-cidr 192.168.0.0/16
 ```
 > If kubeadm exists in master node...
-```
+```console
 kubeadm token create --print-join-command
 --- below command is returned
 kubeadm join 10.0.0.181:6443 --token 06d8ul.i2bncyx2ffk04imi --discovery-token-ca-cert-hash \
@@ -32,19 +32,19 @@ sha256:baa500ae2cd46e952ea2d481d18a5d67d173f0890f771520f0ccee4b31ca77f7
 
 ```
 > In minion node
-```
+```console
 sudo kubeadm join 10.0.0.181:6443 --token 06d8ul.i2bncyx2ffk04imi --discovery-token-ca-cert-hash \
 sha256:baa500ae2cd46e952ea2d481d18a5d67d173f0890f771520f0ccee4b31ca77f7
 
 ```
 > back to master node
-```
+```console
 k describe nodes | grep -i taint
 k taint node --all node-role.kubernetes.io/master-
 ```
 
 ### Create a pod (2 containers) exposed by the port, and a service to expose the pod in the cluster
-```
+```console
 curl http://rawfileofsomepodfromdoc.yaml >> singleContainerPod.yaml
 k create -f ingleContainerPod.yaml; k get pod; k delete pod ingleContainerPod
 ```
@@ -76,7 +76,7 @@ spec:
     protocol: TCP
 ```
 ### Create a deployment in `mynamespace`
-```
+```console
 k create deployment firstdeploy --image=nginx -n mynamespace
 kubectl scale deployment try1 --replicas=6
 ```
@@ -88,7 +88,7 @@ kubectl scale deployment try1 --replicas=6
 > build container
 > run container
 > view the content log of the container
-```
+```console
 which python
 chmod +x simple.py
 ---
@@ -116,7 +116,7 @@ sudo tail /var/lib/docker/aufs/diff/..../date.out
 > test on pulling ubuntu image
 > to register for an existing docker image
 > config the minion node to use the registry
-```
+```console
 cd ; sudo -i
 apt-get install -y docker-compose apache2-utils
 mkdir -p /localdocker/data; cd /localdocker/ ; vim docker-compose.yaml
@@ -162,20 +162,20 @@ spec:
 ```
 ### create a deployment from image of local registry on master node
 > store deployment in yaml file for futher editing
-```
+```console
 kubectl create deployment try1 --image=10.110.186.162:5000/simpleapp:latest
 kubectl scale deployment try1 --replicas=6
 k get deployment try1 -o yaml > simpleapp.yaml
 ```
 > verify container running on minion node
 > scheduler will deploy equal number of pods on both nodes
-```
+```console
 sudo docker ps |grep simple
 ```
 ### readinessProbes and livenessProbes
 > create the path to make container ready
 > verify the pods, Ready  true, State running
-```
+```console
 for name in <pod1> <pod2>
 do
 kubectl exec $name touch /tmp/healthy
