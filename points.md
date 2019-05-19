@@ -261,7 +261,197 @@ spec:
           restartPolicy: Never
 ```
 ## Deployment
+### configMap
+> configMap with path
+```console
+mkdir primary;
+echo sky > primary/blue;
+echo "known as blue sky" >> primary/blue;
+echo pink > favorite;
+k create configmap colors \
+--from-literal=text=black \
+--from-file=./favorite \
+--from-file=./primary/
+```
+> configMap is used below
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+    - name: test-container
+      image: nginx
+      env:
+        - name: ilike
+          valueFrom:
+            configMapKeyRef:
+              name: colors
+              key: favorite  #<-- just the key
+      envFrom:               #<-- whole configmap
+      - configMapRef:
+          name: colors
+  restartPolicy: Always
 
+```
+> configMap without path
+> volume containes the configMap
+> volumMount mount the volume with a path
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+spec:
+  containers:
+    - name: test-container
+      image: nginx
+      readinessProbe:
+      periodSeconds: 5
+      exec:
+        command:
+        - cat
+        - /etc/config # <-- mountPath
+      volumeMounts:
+      - name: config-volume # <-- volume name
+        mountPath: /etc/config
+  volumes:
+    - name: config-volume
+      configMap:
+        name: fast-car
+  restartPolicy: Always
+```
+### attaching storage with PV with NFS and PVC
+> configure a NFS server with pv and pvc
+```console
+find ~ -name CreateNFS.sh
+cp <path to nfs.sh> ~
+bash ~/CreateNFS.sh
+```
+> output mount path: /opt/sfw *
+> on minion node, install nfs and mount the nfs
+```console
+sudo apt-get -y install nfs-common nfs-kernel-server
+showmount -e master
+sudo mount master:/opt/sfw /mnt
+ls -l /mnt
+```
+> output mount path: /opt/sfw *
+> data from host nfs is stored in /mnt
+> on master node
+```yaml
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pvvol-1
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    path: "/opt/sfw"
+    server: master
+    readOnly: false
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-one
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Mi
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: test-pv-pod
+spec:
+  volumes:
+    - name: nfs-vol
+      persistentVolumeClaim:
+       claimName: pvc-one
+  containers:
+    - name: nginx
+      image: nginx
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/mnt"
+          name: nfs-vol
+```
+> verify mounts by describe pod
+```console
+Mounts:
+/mnt from nfs-vol (rw)
+```
+### configure ambassador containers using pv, pvc
+```console
+sudo mkdir /tmp/weblog
+```
+```yaml
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: weblog-pv-volume
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/weblog"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: weblog-pvc-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+kind: Pod
+apiVersion: v1
+metadata:
+  name: test-pv-pod
+spec:
+  volumes:
+    - name: weblog-pv-storage
+      persistentVolumeClaim:
+       claimName: weblog-pvc-claim
+  containers:
+    - name: nginx
+      image: nginx
+      ports:
+        - containerPort: 80
+          name: "http-server"
+      volumeMounts:
+        - mountPath: "/var/log/nginx/"
+          name: weblog-pv-storage
+    - name: fdlogger
+      image: fluent/fluentd
+      volumeMounts:
+        - mountPath: "/var/log"
+          name: weblog-pv-storage
+```
+> verify the log is saved in the mountpath
+```console
+k exec -c nginx -it test-pv-pod -- bash
+ls -l /var/log/nginx/access.log
+curl <svc ip http://192.168.213.181>
+tailf /var/log/nginx/access.log
+```
 ## Security
 
 ## Exposing Applications
