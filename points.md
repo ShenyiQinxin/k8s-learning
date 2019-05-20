@@ -396,6 +396,32 @@ Mounts:
 sudo mkdir /tmp/weblog
 ```
 ```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+data:
+  fluentd.conf: |
+    <source>
+      type tail
+      format none
+      path /var/log/1.log
+      pos_file /var/log/1.log.pos
+      tag count.format1
+    </source>
+
+    <source>
+      type tail
+      format none
+      path /var/log/2.log
+      pos_file /var/log/2.log.pos
+      tag count.format2
+    </source>
+
+    <match **>
+      type google_cloud
+    </match>
+---
 kind: PersistentVolume
 apiVersion: v1
 metadata:
@@ -430,6 +456,9 @@ spec:
     - name: weblog-pv-storage
       persistentVolumeClaim:
        claimName: weblog-pvc-claim
+    - name: log-config
+      configMap:
+        name: fluentd-config
   containers:
     - name: nginx
       image: nginx
@@ -441,9 +470,14 @@ spec:
           name: weblog-pv-storage
     - name: fdlogger
       image: fluent/fluentd
+      env:
+      - name: FLUENTD_ARGS
+        value: -c /etc/fluentd-config/fluentd.conf
       volumeMounts:
         - mountPath: "/var/log"
           name: weblog-pv-storage
+        - mountPath: "/etc/fluentd-config"
+          name: log-config
 ```
 > verify the log is saved in the mountpath
 ```console
@@ -451,9 +485,151 @@ k exec -c nginx -it test-pv-pod -- bash
 ls -l /var/log/nginx/access.log
 curl <svc ip http://192.168.213.181>
 tailf /var/log/nginx/access.log
+k logs test-pv-pod fdlogger #contains output
+k logs test-pv-pod webcont
+```
+### Rolling Updates and Rollbacks
+> build the same image again
+```console
+sudo docker build -t simpleapp .
+sudo docker tag simpleapp 10.105.119.236:5000/simpleapp:v2
+sudo docker push 10.105.119.236:5000/simpleapp:v2
+kubectl edit deployment try1
+containers:
+- image: 10.105.119.236:5000/simpleapp:v2 #<-- Edit tag
+```
+> `v2` tag replaced `latest`
+> in minion node
+```console
+sudo docker pull 10.105.119.236:5000/simpleapp
+sudo docker pull 10.105.119.236:5000/simpleapp:v2
+```
+> view the events and change of deployment
+```console
+kubectl get events
+kubectl describe pod try1-895fccfb-ttqdn |grep -i Image
+kubectl rollout history deployment try1 #view the history update
+kubectl rollout history deployment try1 --revision=1 > one.out
+kubectl rollout history deployment try1 --revision=2 > two.out
+diff one.out two.out
+kubectl rollout undo --dry-run=true deployment/try1
+kubectl rollout undo deployment try1 --to-revision=1
 ```
 ## Security
+### Set SecurityContext for a Pod and Container
+```console
+kubectl exec -it secondapp -- sh
+/$ ps aux #Check the user ID of the shell and other processes
+/$ grep Cap /proc/1/status #check the capabilities of the kernel
+/$ exit
 
+capsh --decode=00000000a80425fb #decode the output
+```
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-demo-2
+spec:
+  securityContext:
+    runAsUser: 1000
+  containers:
+  - name: busybox
+    image: busybox
+    securityContext:
+      runAsUser: 2000
+      allowPrivilegeEscalation: false
+      capabilities:
+        add: [ "NET_ADMIN" , "SYS_TIME" ]
+```
+### Create and consume Secrets
+```console
+echo LFTr@1n | base64 #generating an encoded password.
+```
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+data:
+  password: TEZUckAxbgo=
+---
+``yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: security-context-demo-2
+spec:
+  securityContext:
+    runAsUser: 1000
+  containers:
+  - name: busybox
+    image: busybox
+    securityContext:
+      runAsUser: 2000
+      allowPrivilegeEscalation: false
+      capabilities:
+        add: [ "NET_ADMIN" , "SYS_TIME" ]
+    volumeMounts:
+    - name: mysql
+      mountPath: /mysqlpassword
+  volumes:
+  - name: mysql
+    secret:
+      secretName: test-secret
+
+```
+```console
+kubectl exec -ti secondapp -- /bin/sh
+/ $ cat /mysqlpassword/password
+LFTr@1n
+/ $ cd /mysqlpassword/
+/mysqlpassword $ ls -al
+```
+> /mysqlpassword/password is a symbolic link to ../data, which is also a symbolic link
+### SA
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: secret-access-sa
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  # "namespace" omitted since ClusterRoles are not namespaced
+  name: secret-access-cr
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "watch", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: RoleBinding
+metadata:
+  name: secret-rb
+subjects:
+- kind: ServiceAccount
+  name: secret-access-sa
+roleRef:
+  kind: ClusterRole #this must be Role or ClusterRole
+  name: secret-access-cr # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+---
+# in pod
+spec:
+  serviceAccountName: secret-access-sa
+  securityContext:
+    runAsUser: 1000
+
+```
+> verify secret
+```console
+kubectl describe pod secondapp |grep -i secret
+```
+### Implement a NetworkPolicy
+```console
+```
 ## Exposing Applications
 
 ## Troubleshooting
