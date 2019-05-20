@@ -628,8 +628,105 @@ spec:
 kubectl describe pod secondapp |grep -i secret
 ```
 ### Implement a NetworkPolicy
+> Calico could, Flannel could not
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - ipBlock:
+        cidr: 192.168.0.0/16
+  - Egress
+```
+> pod and svc to test on
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: podtestsecurity
+  labels:
+    app: podtestsecurity
+spec:
+  #securityContext:
+  #  runAsUser: 1000
+  containers:
+  - name: nginx
+    image: nginx
+  - name: busy
+    image: busybox
+    securityContext:
+      runAsUser: 2000
+      allowPrivilegeEscalation: false
+      capabilities:
+        add: [ "NET_ADMIN" , "SYS_TIME" ]
+    volumeMounts:
+    - name: mysql
+      mountPath: /mysqlpassword
+  volumes:
+  - name: mysql
+    secret:
+      secretName: test-secret
+```
 ```console
+k expose pod podtestsecurity --type=NodePort --port=80
+k edit svc podtestsecurity
+```
+> verify ingress and egress
+```console
+k exec -it -c busy podtestsecurity sh
+nc -vz 127.0.0.1 80  #ingress
+nc -vz www.linux.com 80 #egress
+ip a #get ip of eth0 of the container, so we could white list this ip
+# inet 192.168.55.91/32 scope global eth0
+ping -c5 192.168.55.91
 ```
 ## Exposing Applications
-
+### Expose a Service
+> modify svc as NodePort type
+> use LoadBalancer -> NodePort and request an external loadbalancer for the external ip
+### Ingress Controller
+> for a large number of svc to expose pods
+> ingress RBAC configures CR, SA, and CRB
+> ingress controller configures SA, daemonset, svc
+> ingress rule
+```
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: test-ingress
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: www.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: podtestsecurity
+          servicePort: 80
+        path: /
+  - host: thirdpage.org
+    http:
+      paths:
+      - backend:
+          serviceName: thirdpage
+          servicePort: 80
+        path: /
+```
+>
+```console
+ip a
+ens4: 10.128.0.7
+curl -H "Host: www.example.com" http://10.128.0.7/
+curl -H "Host: www.example.com" http://192.168.1.208/
+---
+k run thirdpage --generator=run-pod/v1 --image=nginx --port=80 -l example=third
+k expose thirdpage --type=NodePort
+```
 ## Troubleshooting
