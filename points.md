@@ -695,7 +695,7 @@ ping -c5 192.168.55.91
 > ingress RBAC configures CR, SA, and CRB
 > ingress controller configures SA, daemonset, svc
 > ingress rule
-```
+```yaml
 apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
