@@ -17,7 +17,7 @@ echo "alias k=kubectl; complete -F __start_kubectl k" >> ~/.bashrc
 k get deploy,po,svc,ep,pv,pvc
 ```
 
-### Deploy a cluster
+### 1. Deploy a cluster
 > Deploy a master node using kubeadm init
 ```console
 sudo apt-get install -y kubeadm=1.14.1-00
@@ -31,7 +31,7 @@ kubeadm join 10.0.0.181:6443 --token 06d8ul.i2bncyx2ffk04imi --discovery-token-c
 sha256:baa500ae2cd46e952ea2d481d18a5d67d173f0890f771520f0ccee4b31ca77f7
 
 ```
-> In minion node
+> Deploy a minion node
 ```console
 sudo kubeadm join 10.0.0.181:6443 --token 06d8ul.i2bncyx2ffk04imi --discovery-token-ca-cert-hash \
 sha256:baa500ae2cd46e952ea2d481d18a5d67d173f0890f771520f0ccee4b31ca77f7
@@ -43,7 +43,8 @@ k describe nodes | grep -i taint
 k taint node --all node-role.kubernetes.io/master-
 ```
 
-### Create a pod (2 containers) exposed by the port, and a service to expose the pod in the cluster
+### 2. Create a pod with 2 containers, and a service
+> exposed by the port, and a service to expose the pod in the cluster
 ```console
 curl http://rawfileofsomepodfromdoc.yaml >> singleContainerPod.yaml
 k create -f ingleContainerPod.yaml; k get pod; k delete pod ingleContainerPod
@@ -75,13 +76,13 @@ spec:
   - port: 80
     protocol: TCP
 ```
-### Create a deployment in `mynamespace`
+### 3. Create a simple deployment in `mynamespace`
 ```console
 k create deployment firstdeploy --image=nginx -n mynamespace
 kubectl scale deployment try1 --replicas=6
 ```
 ## Build
-### build a docker image
+### 4. deploy a new application (build a docker image)
 > check python
 > make script executable
 > Dockerfile
@@ -104,7 +105,7 @@ sudo docker run simpleapp
 sudo find / -name date.out
 sudo tail /var/lib/docker/aufs/diff/..../date.out
 ```
-### configure a local docker repo
+### 5. configure a local docker repo
 > install docker-compose
 > create a docker compose yaml file
 > build container for docker repo
@@ -160,7 +161,7 @@ spec:
     path: "/tmp/data" # decided by docker-compose.yaml --> /localdocker/data:/data
 
 ```
-### create a deployment from image of local registry on master node
+#### create a deployment from image of local registry on master node
 > store deployment in yaml file for futher editing
 ```console
 kubectl create deployment try1 --image=10.110.186.162:5000/simpleapp:latest
@@ -172,7 +173,7 @@ k get deployment try1 -o yaml > simpleapp.yaml
 ```console
 sudo docker ps |grep simple
 ```
-### readinessProbes and livenessProbes
+### 6. Configure probes -- readinessProbes and livenessProbes
 > create the path to make container ready
 > verify the pods, Ready  true, State running
 ```console
@@ -209,13 +210,14 @@ spec:
       periodSeconds: 20
 ```
 ## Design
+### 7. Evaluate network plugins
 > verify the cni Calico is configured for the cluster
 ```console
 ps -ef | grep cni
 sudo find / -name install-cni.sh
 
 ```
-### Designing Applications With Duration: Create a Job and a CronJob
+### 8. Designing Applications With Duration: Create a Job and a CronJob
 > Jobs run the application for a particular number of times
 > restartPolicy: Never --> sleeps for 3 seconds, then stop
 > Parallelism: 2 --> run 2 at a time
@@ -260,8 +262,8 @@ spec:
             command: ["/bin/sleep", "3"]
           restartPolicy: Never
 ```
-## Deployment
-### configMap
+## Deployment configuration
+### 9. Configure the Deployment using configMap
 > configMap with path
 ```console
 mkdir primary;
@@ -322,7 +324,7 @@ spec:
         name: fast-car
   restartPolicy: Always
 ```
-### attaching storage with PV with NFS and PVC
+### 10. Configure the Deployment: attaching storage with PV with NFS and PVC
 > configure a NFS server with pv and pvc
 ```console
 find ~ -name CreateNFS.sh
@@ -391,7 +393,7 @@ spec:
 Mounts:
 /mnt from nfs-vol (rw)
 ```
-### configure ambassador containers using pv, pvc
+### 11. configure ambassador containers using pv, pvc
 ```console
 sudo mkdir /tmp/weblog
 ```
@@ -488,7 +490,7 @@ tailf /var/log/nginx/access.log
 k logs test-pv-pod fdlogger #contains output
 k logs test-pv-pod webcont
 ```
-### Rolling Updates and Rollbacks
+### 12. Rolling Updates and Rollbacks
 > build the same image again
 ```console
 sudo docker build -t simpleapp .
@@ -516,7 +518,7 @@ kubectl rollout undo --dry-run=true deployment/try1
 kubectl rollout undo deployment try1 --to-revision=1
 ```
 ## Security
-### Set SecurityContext for a Pod and Container
+### 13. Set SecurityContext for a Pod and Container
 ```console
 kubectl exec -it secondapp -- sh
 /$ ps aux #Check the user ID of the shell and other processes
@@ -542,7 +544,7 @@ spec:
       capabilities:
         add: [ "NET_ADMIN" , "SYS_TIME" ]
 ```
-### Create and consume Secrets
+### 14. Create and consume Secrets
 ```console
 echo LFTr@1n | base64 #generating an encoded password.
 ```
@@ -587,7 +589,7 @@ LFTr@1n
 /mysqlpassword $ ls -al
 ```
 > /mysqlpassword/password is a symbolic link to ../data, which is also a symbolic link
-### SA
+### 15. using ServiceAccounts to assign cluster roles, or the ability to use particular HTTP verbs
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -627,7 +629,7 @@ spec:
 ```console
 kubectl describe pod secondapp |grep -i secret
 ```
-### Implement a NetworkPolicy
+### 16. Implement a NetworkPolicy
 > Calico could, Flannel could not
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -687,10 +689,10 @@ ip a #get ip of eth0 of the container, so we could white list this ip
 ping -c5 192.168.55.91
 ```
 ## Exposing Applications
-### Expose a Service
-> modify svc as NodePort type
-> use LoadBalancer -> NodePort and request an external loadbalancer for the external ip
-### Ingress Controller
+### 17. Expose a Service
+> 1. modify svc as NodePort type
+> 2. modify svc as LoadBalancer -> NodePort and request an external loadbalancer for the external ip
+### 18. Ingress Controller
 > for a large number of svc to expose pods
 > ingress RBAC configures CR, SA, and CRB
 > ingress controller configures SA, daemonset, svc
@@ -729,4 +731,3 @@ curl -H "Host: www.example.com" http://192.168.1.208/
 k run thirdpage --generator=run-pod/v1 --image=nginx --port=80 -l example=third
 k expose thirdpage --type=NodePort
 ```
-## Troubleshooting
