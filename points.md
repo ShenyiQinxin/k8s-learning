@@ -60,10 +60,10 @@ spec:
   containers:
   - name: webcont
     image: nginx
-    ports: fluent/fluentd
+    ports:
     - containerPort: 80 #port 80 is defined in the container
   - name: fdlogger
-    image: nginx
+    image: fluent/fluentd
 ---
 apiVersion: v1
 kind: Service
@@ -196,7 +196,7 @@ spec:
   - name: webcont
     image: nginx
     ports:
-    - containerPort: 8080
+    - containerPort: 80
     readinessProbe:
       periodSeconds: 5
       exec:
@@ -267,8 +267,8 @@ spec:
 > configMap with path
 ```console
 mkdir primary;
-echo sky > primary/blue;
-echo "known as blue sky" >> primary/blue;
+echo blue > primary/blue;
+echo "known as sky blue" >> primary/blue;
 echo pink > favorite;
 k create configmap colors \
 --from-literal=text=black \
