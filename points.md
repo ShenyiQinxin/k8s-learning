@@ -589,7 +589,7 @@ LFTr@1n
 /mysqlpassword $ ls -al
 ```
 > /mysqlpassword/password is a symbolic link to ../data, which is also a symbolic link
-### 15. using ServiceAccounts to assign cluster roles, or the ability to use particular HTTP verbs
+### 14.1 using ServiceAccounts to assign cluster roles, or the ability to use particular HTTP verbs
 ```yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -629,7 +629,7 @@ spec:
 ```console
 kubectl describe pod secondapp |grep -i secret
 ```
-### 16. Implement a NetworkPolicy
+### 15. Implement a NetworkPolicy
 > Calico could, Flannel could not
 ```yaml
 apiVersion: networking.k8s.io/v1
@@ -689,10 +689,10 @@ ip a #get ip of eth0 of the container, so we could white list this ip
 ping -c5 192.168.55.91
 ```
 ## Exposing Applications
-### 17. Expose a Service
+### 16. Expose a Service
 > 1. modify svc as NodePort type
 > 2. modify svc as LoadBalancer -> NodePort and request an external loadbalancer for the external ip
-### 18. Ingress Controller
+### Ingress Controller
 > for a large number of svc to expose pods
 > ingress RBAC configures CR, SA, and CRB
 > ingress controller configures SA, daemonset, svc
