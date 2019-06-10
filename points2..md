@@ -283,6 +283,16 @@ k logs test-pv-pod webcont
 ### 12. (Updating Resources) Rolling Updates and Rollbacks
 > view the events and change of deployment
 ```console
+kubectl edit deployment try1
+---
+kubectl run ghost --image=ghost --record
+kubectl get deployment ghost -o yaml
+kubectl set image deployment/ghost ghost=ghost:09 --all
+kubectl rollout history deployment/ghost deployments "ghost"
+kubectl rollout undo deployment/ghost
+kubectl rollout pause deployment/ghost
+kubectl rollout resume deployment/ghost
+---
 kubectl get events
 kubectl describe pod try1-895fccfb-ttqdn |grep -i Image
 kubectl rollout history deployment try1 #view the history update
@@ -312,6 +322,9 @@ spec:
         add: [ "NET_ADMIN" , "SYS_TIME" ]
 ```
 ### 14. Create and consume Secrets
+```console
+k create secret generic mysql -n default --from-literal=password=root
+```
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -343,6 +356,17 @@ spec:
   - name: mysql
     secret:
       secretName: test-secret
+---
+spec:
+  containers:
+  - image: mysql:5.5
+    env:
+    - name: MYSQL_ROOT_PSW
+      valueFrom:
+          secretKeyRef:
+              name: mysql
+              key: password
+        name: mysql
 
 ```
 ### 14.1 using ServiceAccounts to assign cluster roles, or the ability to use particular HTTP verbs
