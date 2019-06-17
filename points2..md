@@ -79,8 +79,8 @@ spec:
 ### 8. Designing Applications With Duration: Create a Job and a CronJob
 > Jobs run the application for a particular number of times
 > restartPolicy: Never --> sleeps for 3 seconds, then stop
-> Parallelism: 2 --> run 2 at a time
-> Completions: 5 --> run 5 times in total
+> parallelism: 2 --> run 2 at a time
+> completions: 5 --> run 5 times in total
 > activeDeadlineSeconds: 15 --> after the 15 second, the job stops
 ```yaml
 apiVersion: batch/v1

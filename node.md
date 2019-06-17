@@ -1,6 +1,8 @@
 ### Setup
 **cheat sheet**
 ```console
+wget https://training.linuxfoundation.org/cm/LFD259/LFD259_V2019-05-16_SOLUTIONS.tar.bz2 --user=LFtraining --password=Penguin2014
+
 source <(kubectl completion bash) ; echo "source <(kubectl completion bash)" >> ~/.bashrc
 echo "alias k=kubectl; complete -F __start_kubectl k" >> ~/.bashrc
 ```
